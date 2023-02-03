@@ -1,0 +1,52 @@
+---
+- name: Create prometheus config directory
+  ansible.builtin.file:
+    path: /opt/prometheus
+    state: directory
+
+- name: Template prometheus config
+  ansible.builtin.template:
+    src: templates/prometheus.yml.j2
+    dest: /opt/prometheus/prometheus.yml
+    mode: '0644'
+  vars:
+    prom_host: "{{ ansible_ssh_host }}"
+
+- name: Copy node exporters targets file
+  ansible.builtin.copy:
+    src: files/targets_node_exporters.yml
+    dest: /opt/prometheus/targets_node_exporters.yml
+
+- name: Create prometheus data volume
+  community.docker.docker_volume:
+    name: prom-data
+
+- name: Create monitoring docker network
+  community.docker.docker_network:
+    name: monitoring
+
+- name: Run prometheus container
+  community.docker.docker_container:
+    name: prometheus
+    image: prom/prometheus:latest
+    state: started
+    restart_policy: always
+    volumes:
+      - /opt/prometheus/:/etc/prometheus/
+      - prom-data:/data/
+    networks:
+      - name: monitoring
+    published_ports:
+      - "{{ prom_port }}:9090"
+    user: root
+    command: > 
+      --config.file="/etc/prometheus/prometheus.yml"
+      --storage.tsdb.path="/data/prometheus"
+
+- name: Permit traffic for prometheus port
+  ansible.posix.firewalld:
+    port: "{{ prom_port }}/tcp"
+    permanent: true
+    #zone: public
+    state: enabled
+    immediate: yes

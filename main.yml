@@ -1,0 +1,6 @@
+---
+- name: Install prometheus on host
+  hosts: target
+  gather_facts: no
+  roles:
+    - role: prometheus_install
