@@ -1,1 +1,13 @@
 ---
+all:
+  children:
+    target:
+      hosts:
+        192.168.1.123: # <db host IP or DNS>
+          prom_port: 9999
+  
+      vars:
+        ansible_user: <user>
+        ansible_password: <password>
+        ansible_become: yes
+        ansible_become_password: "{{ ansible_password }}"
